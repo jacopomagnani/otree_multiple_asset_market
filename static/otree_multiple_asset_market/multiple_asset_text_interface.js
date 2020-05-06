@@ -4,9 +4,10 @@ import '/static/otree-redwood/src/redwood-channel/redwood-channel.js';
 import '/static/otree-redwood/src/redwood-period/redwood-period.js';
 import '/static/otree-redwood/src/otree-constants/otree-constants.js';
 
+import '/static/otree_markets/trader_state.js'
+
 import '/static/otree_markets/simple_modal.js';
 import '/static/otree_markets/event_log.js';
-import '/static/otree_markets/order_book.js'
 
 import './asset_cell.js'
 import './asset_table.js'
@@ -71,19 +72,14 @@ class MultipleAssetTextInterface extends PolymerElement {
             <simple-modal
                 id="modal"
             ></simple-modal>
-            <redwood-channel
-                id="chan"
-                channel="chan"
-                on-event="_on_message"
-            ></redwood-channel>
             <redwood-period
                 on-period-start="_start"
             ></redwood-period>
             <otree-constants
                 id="constants"
             ></otree-constants>
-            <order-book
-                id="order_book"
+            <trader-state
+                id="trader_state"
                 bids="{{bids}}"
                 asks="{{asks}}"
                 trades="{{trades}}"
@@ -91,7 +87,10 @@ class MultipleAssetTextInterface extends PolymerElement {
                 available-assets="{{availableAssets}}"
                 settled-cash="{{settledCash}}"
                 available-cash="{{availableCash}}"
-            ></order-book>
+                on-confirm-trade="_confirm_trade"
+                on-confirm-cancel="_confirm_cancel"
+                on-error="_handle_error"
+            ></trader-state>
 
             <div class="full-width">
                 <div class="main-container">
@@ -137,31 +136,6 @@ class MultipleAssetTextInterface extends PolymerElement {
 
         this.pcode = this.$.constants.participantCode;
         this.asset_names = Object.keys(this.availableAssets);
-
-        // maps incoming message types to their appropriate handler
-        this.message_handlers = {
-            confirm_enter: this._handle_confirm_enter,
-            confirm_trade: this._handle_confirm_trade,
-            confirm_cancel: this._handle_confirm_cancel,
-            error: this._handle_error,
-        };
-    }
-
-    // main entry point for inbound messages. dispatches messages
-    // to the appropriate handler
-    _on_message(event) {
-        const msg = event.detail.payload;
-        const handler = this.message_handlers[msg.type];
-        if (!handler) {
-            throw `error: invalid message type: ${msg.type}`;
-        }
-        handler.call(this, msg.payload);
-    }
-
-    // handle an incoming order entry confirmation
-    _handle_confirm_enter(msg) {
-        const order = msg;
-        this.$.order_book.insert_order(order);
     }
 
     // triggered when this player enters an order
@@ -172,16 +146,7 @@ class MultipleAssetTextInterface extends PolymerElement {
             this.$.log.error('Invalid order entered');
             return;
         }
-        this.$.chan.send({
-            type: 'enter',
-            payload: {
-                price: order.price,
-                volume: order.volume,
-                is_bid: order.is_bid,
-                asset_name: order.asset_name,
-                pcode: this.pcode,
-            }
-        });
+        this.$.trader_state.enter_order(order);
     }
 
     // triggered when this player cancels an order
@@ -194,10 +159,7 @@ class MultipleAssetTextInterface extends PolymerElement {
             if (!accepted)
                 return;
 
-            this.$.chan.send({
-                type: 'cancel',
-                payload: order
-            });
+            this.$.trader_state.cancel_order(order)
         };
         this.$.modal.show();
     }
@@ -212,35 +174,33 @@ class MultipleAssetTextInterface extends PolymerElement {
             if (!accepted)
                 return;
 
-            this.$.chan.send({
-                type: 'accept_immediate',
-                payload: order
-            });
+            this.$.trader_state.accept_order(order);
         };
         this.$.modal.show();
     }
 
-    // handle an incoming trade confirmation
-    _handle_confirm_trade(msg) {
-        const my_trades = this.$.order_book.handle_trade(msg.making_orders, msg.taking_order, msg.asset_name, msg.timestamp);
-        for (let order of my_trades) {
-            this.$.log.info(`You ${order.is_bid ? 'bought' : 'sold'} asset ${order.asset_name} for $${msg.making_orders[0].price}`);
+    // react to the backend confirming that a trade occurred
+    _confirm_trade(event) {
+        const trade = event.detail;
+        // since we're doing unit volume, there can only ever be one making order
+        const all_orders = [trade.making_orders[0], trade.taking_order];
+        for (let order of all_orders) {
+            this.$.log.info(`You ${order.is_bid ? 'bought' : 'sold'} asset ${order.asset_name} for $${trade.making_orders[0].price}`);
         }
     }
 
-    // handle an incoming cancel confirmation message
-    _handle_confirm_cancel(msg) {
-        const order = msg;
-        this.$.order_book.remove_order(order);
+    // react to the backend confirming that an order was canceled
+    _confirm_cancel(event) {
+        const order = event.detail;
         if (order.pcode == this.pcode) {
             this.$.log.info(`You canceled your ${msg.is_bid ? 'bid' : 'ask'}`);
         }
     }
 
-    // handle an incomming error message
-    _handle_error(msg) {
-        if (msg.pcode == this.pcode) 
-            this.$.log.error(msg['message'])
+    // handle an error sent from the backend
+    _handle_error(event) {
+        const message = event.detail;
+        this.$.log.error(message);
     }
 
     _start() {
