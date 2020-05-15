@@ -48,9 +48,11 @@ class Group(markets_models.Group):
 
 class Player(markets_models.Player):
 
-    def asset_endowment(self, asset_name):
-        i = Constants.asset_names.index(asset_name)
-        return int(self.subsession.config.asset_endowments.split(' ')[i])
+    def asset_endowment(self):
+        asset_names = self.subsession.asset_names()
+        endowments = [int(e) for e in self.subsession.config.asset_endowments.split(' ') if e]
+        assert len(asset_names) == len(endowments), 'invalid config. num_assets and asset_endowments must match'
+        return dict(zip(asset_names, endowments))
     
     def cash_endowment(self):
         return self.subsession.config.cash_endowment
