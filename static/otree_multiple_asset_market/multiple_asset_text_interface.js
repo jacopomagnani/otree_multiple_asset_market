@@ -1,8 +1,6 @@
 import { html, PolymerElement } from '/static/otree-redwood/node_modules/@polymer/polymer/polymer-element.js';
 import '/static/otree-redwood/node_modules/@polymer/polymer/lib/elements/dom-repeat.js';
-import '/static/otree-redwood/src/redwood-channel/redwood-channel.js';
 import '/static/otree-redwood/src/redwood-period/redwood-period.js';
-import '/static/otree-redwood/src/otree-constants/otree-constants.js';
 
 import '/static/otree_markets/trader_state.js'
 
@@ -25,10 +23,14 @@ class MultipleAssetTextInterface extends PolymerElement {
             bids: Array,
             asks: Array,
             trades: Array,
-            settledAssets: Object,
-            availableAssets: Object,
+            settledAssetsDict: Object,
+            availableAssetsDict: Object,
             settledCash: Number,
             availableCash: Number,
+            assetNames: {
+                type: Array,
+                computed: '_compute_asset_names(availableAssetsDict)',
+            }
         };
     }
 
@@ -72,21 +74,16 @@ class MultipleAssetTextInterface extends PolymerElement {
             <simple-modal
                 id="modal"
             ></simple-modal>
-            <redwood-period
-                on-period-start="_start"
-            ></redwood-period>
-            <otree-constants
-                id="constants"
-            ></otree-constants>
             <trader-state
                 id="trader_state"
                 bids="{{bids}}"
                 asks="{{asks}}"
                 trades="{{trades}}"
-                settled-assets="{{settledAssets}}"
-                available-assets="{{availableAssets}}"
+                settled-assets-dict="{{settledAssetsDict}}"
+                available-assets-dict="{{availableAssetsDict}}"
                 settled-cash="{{settledCash}}"
                 available-cash="{{availableCash}}"
+                time-remaining="{{timeRemaining}}"
                 on-confirm-trade="_confirm_trade"
                 on-confirm-cancel="_confirm_cancel"
                 on-error="_handle_error"
@@ -94,7 +91,7 @@ class MultipleAssetTextInterface extends PolymerElement {
 
             <div class="full-width">
                 <div class="main-container">
-                    <template is="dom-repeat" items="{{asset_names}}">
+                    <template is="dom-repeat" items="{{assetNames}}">
                         <div>
                             <asset-cell
                                 asset-name="[[item]]"
@@ -112,10 +109,10 @@ class MultipleAssetTextInterface extends PolymerElement {
                     <div>
                         <asset-table
                             time-remaining="[[timeRemaining]]"
-                            settled-assets="{{settledAssets}}"
-                            available-assets="{{availableAssets}}"
-                            settled-cash="{{settledCash}}"
-                            available-cash="{{availableCash}}"
+                            settled-assets-dict="[[settledAssetsDict]]"
+                            available-assets-dict="[[availableAssetsDict]]"
+                            settled-cash="[[settledCash]]"
+                            available-cash="[[availableCash]]"
                             bids="[[bids]]"
                             asks="[[asks]]"
                         ></asset-table>
@@ -131,11 +128,8 @@ class MultipleAssetTextInterface extends PolymerElement {
         `;
     }
 
-    ready() {
-        super.ready();
-
-        this.pcode = this.$.constants.participantCode;
-        this.asset_names = Object.keys(this.availableAssets);
+    _compute_asset_names(availableAssetsDict) {
+        return Object.keys(availableAssetsDict);
     }
 
     // triggered when this player enters an order
@@ -146,7 +140,7 @@ class MultipleAssetTextInterface extends PolymerElement {
             this.$.log.error('Invalid order entered');
             return;
         }
-        this.$.trader_state.enter_order(order);
+        this.$.trader_state.enter_order(order.price, 1, order.is_bid, order.asset_name);
     }
 
     // triggered when this player cancels an order
@@ -185,7 +179,8 @@ class MultipleAssetTextInterface extends PolymerElement {
         // since we're doing unit volume, there can only ever be one making order
         const all_orders = [trade.making_orders[0], trade.taking_order];
         for (let order of all_orders) {
-            this.$.log.info(`You ${order.is_bid ? 'bought' : 'sold'} asset ${order.asset_name} for $${trade.making_orders[0].price}`);
+            if (order.pcode == this.pcode)
+                this.$.log.info(`You ${order.is_bid ? 'bought' : 'sold'} asset ${order.asset_name} for $${trade.making_orders[0].price}`);
         }
     }
 
@@ -201,16 +196,6 @@ class MultipleAssetTextInterface extends PolymerElement {
     _handle_error(event) {
         const message = event.detail;
         this.$.log.error(message);
-    }
-
-    _start() {
-        const start_time = performance.now();
-        const tick = () => {
-            if (this.timeRemaining <= 0) return;
-            this.timeRemaining --;
-            setTimeout(tick, 1000 - (performance.now() - start_time) % 100);
-        }
-        setTimeout(tick, 1000);
     }
 }
 

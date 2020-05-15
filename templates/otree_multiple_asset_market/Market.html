@@ -1,4 +1,4 @@
-{% extends "otree_redwood/Page.html" %}
+{% extends "otree_markets/Page.html" %}
 {% load staticfiles otree %}
 
 {% block title %}
@@ -18,15 +18,6 @@ Market
         }
     </style>
 
-    <multiple-asset-text-interface
-        time-remaining="{{ time_remaining }}"
-        bids="{{ bids }}"
-        asks="{{ asks }}"
-        settled-assets="{{ settled_assets }}"
-        available-assets="{{ available_assets }}"
-        settled-cash="{{ settled_cash }}"
-        available-cash="{{ available_cash }}"
-        trades="{{ trades }}"
-    ></multiple-asset-text-interface>
+    <multiple-asset-text-interface></multiple-asset-text-interface>
 
 {% endblock %}
