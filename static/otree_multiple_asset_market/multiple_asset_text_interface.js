@@ -3,7 +3,7 @@ import '/static/otree-redwood/node_modules/@polymer/polymer/lib/elements/dom-rep
 import '/static/otree-redwood/src/redwood-period/redwood-period.js';
 
 import '/static/otree_markets/trader_state.js'
-
+import '/static/otree_markets/disable-interface-overlay.js';
 import '/static/otree_markets/simple_modal.js';
 import '/static/otree_markets/event_log.js';
 
@@ -70,6 +70,9 @@ class MultipleAssetTextInterface extends PolymerElement {
                     margin: 0 5px 0 5px;
                 }
             </style>
+
+            <disable-interface-overlay
+            ></disable-interface-overlay>
 
             <simple-modal
                 id="modal"
