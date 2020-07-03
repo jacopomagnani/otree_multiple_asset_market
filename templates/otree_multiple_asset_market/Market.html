@@ -7,6 +7,7 @@ Market
 
 {% block scripts %}
     <script type="module" src="/static/otree_multiple_asset_market/multiple_asset_text_interface.js"></script>
+    <script type="module" src="/static/otree_markets/disable_interface_overlay.js"></script>
 {% endblock %}
 
 {% block content %}
@@ -17,6 +18,9 @@ Market
             display: none;
         }
     </style>
+
+    <disable-interface-overlay
+    ></disable-interface-overlay>
 
     <multiple-asset-text-interface></multiple-asset-text-interface>
 
