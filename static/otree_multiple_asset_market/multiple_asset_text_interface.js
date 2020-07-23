@@ -67,6 +67,7 @@ class MultipleAssetTextInterface extends PolymerElement {
                 .info-container > div {
                     flex: 1;
                     margin: 0 5px 0 5px;
+                    border: 1px solid black;
                 }
             </style>
 

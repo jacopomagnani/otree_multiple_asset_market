@@ -42,7 +42,6 @@ class AssetTable extends PolymerElement {
                     box-sizing: border-box;
                 }
                 .container {
-                    border: 1px solid black;
                     height: 100%;
                     padding: 20px;
                 }

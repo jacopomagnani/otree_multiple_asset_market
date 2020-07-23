@@ -69,6 +69,10 @@ class AssetCell extends PolymerElement {
                 .buttons > div > * {
                     margin: 5px;
                 }
+
+                order-list, trade-list {
+                    border: 1px solid black;
+                }
             </style>
 
             <otree-constants
