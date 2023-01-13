@@ -128,17 +128,20 @@ class AssetCell extends PolymerElement {
         this.pcode = this.$.constants.participantCode;
 
         this.orderDisplayFormat = order => `$${order.price}`;
-        this.tradeDisplayFormat = trade => {
-            const all_orders = trade.making_orders.concat([trade.taking_order]);
-            const bought = all_orders.some(o => o.pcode == this.pcode && o.is_bid);
-            const sold   = all_orders.some(o => o.pcode == this.pcode && !o.is_bid);
 
+        this.tradeDisplayFormat = (making_order, taking_order) => {
+            // booleans. true if this player bought/sold in this trade
+            const bought = (making_order.pcode == this.pcode &&  making_order.is_bid) || (taking_order.pcode == this.pcode &&  taking_order.is_bid);
+            const sold   = (making_order.pcode == this.pcode && !making_order.is_bid) || (taking_order.pcode == this.pcode && !taking_order.is_bid);
+
+            // buy_sell_indicator is 'B' if this player bought, 'S' if they sold, 'BS' if they did both
+            // and empty string otherwise
             let buy_sell_indicator = '';
             if (bought && sold) buy_sell_indicator = ' BS';
             else if (bought)    buy_sell_indicator = ' B';
             else if (sold)      buy_sell_indicator = ' S';
 
-            return `$${trade.making_orders[0].price}${buy_sell_indicator}`
+            return `$${making_order.price}${buy_sell_indicator}`
         };
     }
 
